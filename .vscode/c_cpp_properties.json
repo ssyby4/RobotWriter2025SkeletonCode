@@ -5,10 +5,10 @@
       "includePath": [
         "${workspaceFolder}/**"
       ],
-      "compilerPath": "/usr/bin/clang",
+      "compilerPath": "D:/software/mingw64/bin/gcc.exe",
       "cStandard": "${default}",
       "cppStandard": "${default}",
-      "intelliSenseMode": "macos-clang-arm64",
+      "intelliSenseMode": "windows-gcc-x64",
       "compilerArgs": [
         ""
       ]
