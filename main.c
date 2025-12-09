@@ -1,84 +1,127 @@
 #include <stdio.h>
-#include <stdlib.h>
-//#include <conio.h>
-//#include <windows.h>
 #include "rs232.h"
 #include "serial.h"
+#include "glyph_store.h"
+#include "glyph_painter.h"
+#include "text_engine.h"
 
-#define bdrate 115200               /* 115200 baud */
+/* Local helper prototypes */
+static void issue_line(const char *line);
+static void initialise_plotter(void);
+static void prepare_motion(void);
+static void finalise_motion(void);
 
-void SendCommands (char *buffer );
-
-int main()
+int main(void)
 {
+    char inputFile[256] = "text.txt";     /* text file to render */
+    int height_mm = 0;
+    int rc;
 
-    //char mode[]= {'8','N','1',0};
-    char buffer[100];
-
-    // If we cannot open the port then give up immediately
-    if ( CanRS232PortBeOpened() == -1 )
+    /* Open serial or emulator channel */
+    if (CanRS232PortBeOpened() == -1)
     {
-        printf ("\nUnable to open the COM port (specified in serial.h) ");
-        exit (0);
+        printf("[ERROR] Could not open COM port.\n");
+        return 0;
     }
 
-    // Time to wake up the robot
-    printf ("\nAbout to wake up the robot\n");
+    /* Wake up the plotter/emulator */
+    initialise_plotter();
+    printf("[INFO] Plotter ready.\n");
 
-    // We do this by sending a new-line
-    sprintf (buffer, "\n");
-     // printf ("Buffer to send: %s", buffer); // For diagnostic purposes only, normally comment out
-    PrintBuffer (&buffer[0]);
-    Sleep(100);
+    /* Move to origin, set speed, ensure pen-up */
+    prepare_motion();
 
-    // This is a special case - we wait  until we see a dollar ($)
-    WaitForDollar();
+    /* Load font description */
+    rc = load_font_file("SingleStrokeFont.txt");
+    if (rc != 0)
+    {
+        printf("[ERROR] Failed to load font file.\n");
+        finalise_motion();
+        CloseRS232Port();
+        return 0;
+    }
 
-    printf ("\nThe robot is now ready to draw\n");
+    /* Ask user for the character height */
+    printf("Enter character height (4–10 mm): ");
+    if (scanf("%d", &height_mm) != 1)
+    {
+        printf("[ERROR] Invalid input.\n");
+        finalise_motion();
+        CloseRS232Port();
+        return 0;
+    }
 
-        //These commands get the robot into 'ready to draw mode' and need to be sent before any writing commands
-    sprintf (buffer, "G1 X0 Y0 F1000\n");
-    SendCommands(buffer);
-    sprintf (buffer, "M3\n");
-    SendCommands(buffer);
-    sprintf (buffer, "S0\n");
-    SendCommands(buffer);
+    if (height_mm < 4 || height_mm > 10)
+    {
+        printf("[ERROR] Height out of range.\n");
+        finalise_motion();
+        CloseRS232Port();
+        return 0;
+    }
 
+    /* Render the text from the file */
+    rc = render_text_file(inputFile, (float)height_mm);
+    if (rc != 0)
+    {
+        printf("[ERROR] Rendering failed (code %d).\n", rc);
+        finalise_motion();
+        CloseRS232Port();
+        return 0;
+    }
 
-    // These are sample commands to draw out some information - these are the ones you will be generating.
-    sprintf (buffer, "G0 X-13.41849 Y0.000\n");
-    SendCommands(buffer);
-    sprintf (buffer, "S1000\n");
-    SendCommands(buffer);
-    sprintf (buffer, "G1 X-13.41849 Y-4.28041\n");
-    SendCommands(buffer);
-    sprintf (buffer, "G1 X-13.41849 Y0.0000\n");
-    SendCommands(buffer);
-    sprintf (buffer, "G1 X-13.41089 Y4.28041\n");
-    SendCommands(buffer);
-    sprintf (buffer, "S0\n");
-    SendCommands(buffer);
-    sprintf (buffer, "G0 X-7.17524 Y0\n");
-    SendCommands(buffer);
-    sprintf (buffer, "S1000\n");
-    SendCommands(buffer);
-    sprintf (buffer, "G0 X0 Y0\n");
-    SendCommands(buffer);
+    printf("[INFO] Rendering complete.\n");
 
-    // Before we exit the program we need to close the COM port
+    /* Pen-up and return to home */
+    finalise_motion();
+
+    /* Close communication channel */
     CloseRS232Port();
-    printf("Com port now closed\n");
+    printf("[INFO] COM port closed.\n");
 
-    return (0);
+    return 0;
 }
 
-// Send the data to the robot - note in 'PC' mode you need to hit space twice
-// as the dummy 'WaitForReply' has a getch() within the function.
-void SendCommands (char *buffer )
+/* ------------------------------------------------------------------------- */
+/* Helper functions */
+/* ------------------------------------------------------------------------- */
+
+static void issue_line(const char *line)
 {
-    // printf ("Buffer to send: %s", buffer); // For diagnostic purposes only, normally comment out
-    PrintBuffer (&buffer[0]);
+    PrintBuffer((char *)line);
     WaitForReply();
-    Sleep(100); // Can omit this when using the writing robot but has minimal effect
-    // getch(); // Omit this once basic testing with emulator has taken place
+    Sleep(100);
+}
+
+static void initialise_plotter(void)
+{
+    char buf[16];
+    sprintf(buf, "\n");
+    PrintBuffer(buf);
+    Sleep(100);
+    WaitForDollar();
+}
+
+static void prepare_motion(void)
+{
+    char cmd[64];
+
+    sprintf(cmd, "G1 X0 Y0 F1000\n");
+    issue_line(cmd);
+
+    sprintf(cmd, "M3\n");
+    issue_line(cmd);
+
+    sprintf(cmd, "S0\n");
+    issue_line(cmd);
+}
+
+static void finalise_motion(void)
+{
+    char cmd[64];
+
+    sprintf(cmd, "S0\n");
+    issue_line(cmd);
+
+    sprintf(cmd, "G0 X0 Y0\n");
+    issue_line(cmd);
 }
