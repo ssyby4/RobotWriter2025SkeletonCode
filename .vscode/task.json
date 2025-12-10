@@ -9,7 +9,7 @@
                 "main.c",
                 "glyph_store.c",
                 "glyph_painter.c",
-                "text_engine.c",
+                "Text_engine.c",
                 "serial.c",
                 "rs232.c",
                 "-o",
