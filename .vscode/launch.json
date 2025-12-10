@@ -5,7 +5,8 @@
             "name": "RobotWriter Debug",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/Debug/outDebug.exe",
+            "program":  "${workspaceFolder}/outDebug.exe"
+,
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
