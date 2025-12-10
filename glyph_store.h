@@ -1,11 +1,11 @@
-#ifndef GLYPH_STORE_H
-#define GLYPH_STORE_H
+#ifndef glyph_store_h
+#define glyph_store_h
 
 typedef struct
 {
     int x;
     int y;
-    int pen; /* 0 = pen up, 1 = pen down */
+    int pen;   /* 0 = pen up, 1 = pen down */
 } StrokePoint;
 
 int load_font_file(const char *filepath);

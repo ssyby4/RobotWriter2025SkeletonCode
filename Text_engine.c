@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#include "TextEngine.h"
-#include "GlyphPainter.h"
+#include "Text_engine.h"
+#include "glyph_painter.h"
 
 #define LINE_LIMIT_MM   100.0f
 #define BASE_FONT_UNITS 18.0f

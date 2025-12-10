@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <math.h>
-#include "GlyphPainter.h"
-#include "GlyphStore.h"
+#include "glyph_painter.h"
+#include "glyph_store.h"
 #include "serial.h"
+
 
 #define WORKSPACE_X_MAX 100.0f
 #define WORKSPACE_Y_MIN -50.0f

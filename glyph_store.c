@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "GlyphStore.h"
+#include "glyph_store.h"
 
 #define MAX_STROKES  2048
 #define MAX_GLYPHS   128
