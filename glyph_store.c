@@ -4,6 +4,7 @@
 #define MAX_STROKES  2048
 #define MAX_GLYPHS   128
 
+/* Simple index for each glyph inside the stroke buffer */
 typedef struct
 {
     int ascii;
@@ -11,17 +12,24 @@ typedef struct
     int count;
 } GlyphIndex;
 
+/* Global storage for all strokes and glyph index entries */
 static StrokePoint stroke_buffer[MAX_STROKES];
 static GlyphIndex  glyph_table[MAX_GLYPHS];
 
 static int stroke_used = 0;
 static int glyph_used  = 0;
 
+/* Return pointer to internal stroke buffer.
+ * The caller must not modify the data.
+ */
 const StrokePoint *get_stroke_buffer(void)
 {
     return stroke_buffer;
 }
 
+/* Linear search for a glyph entry by ASCII code.
+ * Writes start index and count when a match is found.
+ */
 int find_glyph(int ascii_code, int *start_index, int *count)
 {
     int i;
@@ -37,6 +45,9 @@ int find_glyph(int ascii_code, int *start_index, int *count)
     return 1; /* not found */
 }
 
+/* Read the font file and rebuild stroke_buffer and glyph_table.
+ * Expected format is "999 C N" headers followed by N stroke lines.
+ */
 int load_font_file(const char *filepath)
 {
     FILE *fp;
@@ -59,7 +70,7 @@ int load_font_file(const char *filepath)
 
         if (a == 999)
         {
-            /* glyph header: a = 999, b = ASCII code, c = number of strokes */
+            /* Header: define a new glyph entry */
             if (glyph_used >= MAX_GLYPHS)
             {
                 printf("[ERROR] Glyph table overflow at line %d.\n", line_no);
@@ -74,7 +85,7 @@ int load_font_file(const char *filepath)
         }
         else
         {
-            /* stroke definition: a = x, b = y, c = pen */
+            /* Stroke: add one more drawing command */
             if (stroke_used >= MAX_STROKES)
             {
                 printf("[ERROR] Stroke buffer overflow at line %d.\n", line_no);

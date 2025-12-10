@@ -1,24 +1,24 @@
 #include <stdio.h>
-#include <string.h>
-#include "Text_engine.h"
+#include <ctype.h>
+
+#include "glyph_store.h"
 #include "glyph_painter.h"
+#include "Text_engine.h"
 
-#define LINE_LIMIT_MM   100.0f
-#define BASE_FONT_UNITS 18.0f
+/* Simple layout constants for spacing between characters and lines */
+#define BASE_FONT_UNITS 18.0f      /* nominal font height in font units    */
+#define LINE_SPACING    1.2f       /* line spacing multiplier              */
+#define SPACE_WIDTH     0.6f       /* width of a space relative to height  */
 
+/* Read a text file one character at a time and draw it. */
 int render_text_file(const char *filepath, float height_mm)
 {
     FILE *fp;
     int ch;
-    char word[256];
-    int  w_len = 0;
-
-    float scale      = height_mm / BASE_FONT_UNITS;
-    float cell_width = height_mm * 0.9f;
-    float line_step  = height_mm * 1.3f;
-
-    float x = 0.0f;
-    float y = 0.0f;
+    float scale;
+    float cursor_x = 0.0f;
+    float cursor_y = 0.0f;
+    int rc = 0;
 
     fp = fopen(filepath, "r");
     if (!fp)
@@ -27,98 +27,47 @@ int render_text_file(const char *filepath, float height_mm)
         return 1;
     }
 
+    /* Convert desired height in mm to a scale for font units */
+    scale = height_mm / BASE_FONT_UNITS;
+
     while ((ch = fgetc(fp)) != EOF)
     {
-        if (ch != ' ' && ch != '\r' && ch != '\n')
+        /* Ignore carriage returns in Windows style line endings */
+        if (ch == '\r')
+            continue;
+
+        if (ch == '\n')
         {
-            if (w_len < (int)(sizeof(word) - 1))
-            {
-                word[w_len++] = (char)ch;
-            }
+            /* Move down one line and reset to left margin */
+            cursor_y -= height_mm * LINE_SPACING;
+            cursor_x  = 0.0f;
             continue;
         }
 
-        /* end of a word */
-        if (w_len > 0)
-        {
-            float word_width = (float)w_len * cell_width;
-
-            if (word_width > LINE_LIMIT_MM)
-            {
-                printf("[ERROR] Single word too long for one line.\n");
-                fclose(fp);
-                return 1;
-            }
-
-            if (x + word_width > LINE_LIMIT_MM)
-            {
-                x  = 0.0f;
-                y -= line_step;
-            }
-
-            for (int i = 0; i < w_len; ++i)
-            {
-                if (draw_glyph((unsigned char)word[i], &x, &y, scale) != 0)
-                {
-                    fclose(fp);
-                    return 1;
-                }
-                x += cell_width;
-            }
-
-            w_len = 0;
-            memset(word, 0, sizeof(word));
-        }
-
-        /* handle separator */
         if (ch == ' ')
         {
-            if (x + cell_width > LINE_LIMIT_MM)
-            {
-                x  = 0.0f;
-                y -= line_step;
-            }
-            else
-            {
-                x += cell_width;
-            }
-        }
-        else if (ch == '\r' || ch == '\n')
-        {
-            x  = 0.0f;
-            y -= line_step;
-        }
-    }
-
-    /* process last word if file did not end with separator */
-    if (w_len > 0)
-    {
-        float word_width = (float)w_len * cell_width;
-
-        if (word_width > LINE_LIMIT_MM)
-        {
-            printf("[ERROR] Single word too long for one line.\n");
-            fclose(fp);
-            return 1;
+            /* Simple horizontal advance for spaces */
+            cursor_x += height_mm * SPACE_WIDTH;
+            continue;
         }
 
-        if (x + word_width > LINE_LIMIT_MM)
+        /* Draw printable characters only */
+        if (!isprint(ch))
+            continue;
+
+        rc = draw_glyph(ch, &cursor_x, &cursor_y, scale);
+        if (rc != 0)
         {
-            x  = 0.0f;
-            y -= line_step;
+            printf("[ERROR] Failed to draw character '%c'.\n", ch);
+            break;
         }
 
-        for (int i = 0; i < w_len; ++i)
-        {
-            if (draw_glyph((unsigned char)word[i], &x, &y, scale) != 0)
-            {
-                fclose(fp);
-                return 1;
-            }
-            x += cell_width;
-        }
+        /* Advance origin for the next character.
+         * Using the nominal width here keeps things simple.
+         */
+        cursor_x += height_mm;
     }
 
     fclose(fp);
-    return 0;
+    return rc;
 }

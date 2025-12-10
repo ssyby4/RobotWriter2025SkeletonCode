@@ -1,46 +1,47 @@
 #include <stdio.h>
 #include <math.h>
+
 #include "glyph_painter.h"
 #include "glyph_store.h"
 #include "serial.h"
 
-
 #define WORKSPACE_X_MAX 100.0f
 #define WORKSPACE_Y_MIN -50.0f
 
+/* Send one move command, taking care of pen up/down transitions. */
 static void send_move(float x, float y, int pen_down, int *current_state)
 {
     char buffer[64];
 
-    if (pen_down)
+    /* Change pen state only when needed */
+    if (pen_down && *current_state == 0)
     {
-        if (*current_state == 0)
-        {
-            sprintf(buffer, "S1000\n");
-            PrintBuffer(buffer);
-            WaitForReply();
-        }
-        sprintf(buffer, "G1 X%.2f Y%.2f\n", x, y);
+        sprintf(buffer, "S1000\n");
         PrintBuffer(buffer);
         WaitForReply();
         *current_state = 1;
     }
-    else
+    else if (!pen_down && *current_state == 1)
     {
-        if (*current_state == 1)
-        {
-            sprintf(buffer, "S0\n");
-            PrintBuffer(buffer);
-            WaitForReply();
-        }
-        sprintf(buffer, "G0 X%.2f Y%.2f\n", x, y);
+        sprintf(buffer, "S0\n");
         PrintBuffer(buffer);
         WaitForReply();
         *current_state = 0;
     }
+
+    /* Choose rapid move (G0) for pen up, linear move (G1) for pen down */
+    if (pen_down)
+        sprintf(buffer, "G1 X%.3f Y%.3f\n", x, y);
+    else
+        sprintf(buffer, "G0 X%.3f Y%.3f\n", x, y);
+
+    PrintBuffer(buffer);
+    WaitForReply();
 }
 
-/* check bounds without sending any G-code */
+/* First pass over a glyph: check that every stroke stays in bounds.
+ * No G-code is sent here, we only compute the extreme coordinates.
+ */
 static int check_glyph_bounds(int start, int count,
                               float origin_x, float origin_y,
                               float scale)
@@ -71,6 +72,9 @@ static int check_glyph_bounds(int start, int count,
     return 0;
 }
 
+/* Main entry for drawing a single character.
+ * This function performs a safety check and then sends G-code.
+ */
 int draw_glyph(int ascii_code, float *cursor_x, float *cursor_y, float scale)
 {
     int start, count;
@@ -82,18 +86,18 @@ int draw_glyph(int ascii_code, float *cursor_x, float *cursor_y, float scale)
     {
         printf("[WARN] Unsupported character '%c' (code %d).\n",
                (char)ascii_code, ascii_code);
-        return 0; /* skip but do not treat as fatal error */
+        return 0; /* skip this character but keep going */
     }
 
     buf = get_stroke_buffer();
 
-    /* first pass: safety check */
+    /* First pass: check workspace limits */
     if (check_glyph_bounds(start, count, *cursor_x, *cursor_y, scale) != 0)
     {
         return 1;
     }
 
-    /* second pass: send G-code */
+    /* Second pass: send the actual motion commands */
     for (i = 0; i < count; ++i)
     {
         float gx = (float)buf[start + i].x;
@@ -106,7 +110,7 @@ int draw_glyph(int ascii_code, float *cursor_x, float *cursor_y, float scale)
         send_move(wx, wy, pen, &pen_state);
     }
 
-    /* ensure pen-up at the end of this glyph */
+    /* Make sure we end with pen up after this glyph */
     if (pen_state != 0)
     {
         char buffer[16];

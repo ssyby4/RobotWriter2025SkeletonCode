@@ -26,13 +26,14 @@ int main(void)
         return 0;
     }
 
+    /* Wake-up handshake and wait for '$' or 'ok' */
     initialise_plotter();
     printf("\nThe robot is now ready to draw\n");
 
-    /* Move to origin, set speed, ensure pen-up */
+    /* Move to origin, set feed rate, ensure pen is up */
     prepare_motion();
 
-    /* Load font description */
+    /* Load font description into memory */
     rc = load_font_file("SingleStrokeFont.txt");
     if (rc != 0)
     {
@@ -42,9 +43,9 @@ int main(void)
         return 0;
     }
 
-    /* ===== 关键：询问高度 ===== */
+    /* Ask the user for a valid character height */
     printf("\nEnter character height (4–10 mm): ");
-    fflush(stdout);              /* 确保提示立即显示 */
+    fflush(stdout);
 
     if (scanf("%d", &height_mm) != 1)
     {
@@ -62,7 +63,7 @@ int main(void)
         return 0;
     }
 
-    /* ===== 调用文本渲染 ===== */
+    /* Render the full text file using the chosen height */
     rc = render_text_file(inputFile, (float)height_mm);
     if (rc != 0)
     {
@@ -74,7 +75,7 @@ int main(void)
 
     printf("\n[INFO] Rendering complete.\n");
 
-    /* Pen-up and return to home */
+    /* Park the robot and make sure the pen is up */
     finalise_motion();
 
     /* Close communication channel */
@@ -84,10 +85,7 @@ int main(void)
     return 0;
 }
 
-
-/* Helper functions */
-
-
+/* Send one line of G-code and wait for the reply */
 static void issue_line(const char *line)
 {
     PrintBuffer((char *)line);
@@ -95,15 +93,21 @@ static void issue_line(const char *line)
     Sleep(100);
 }
 
+/* Perform the initial handshake with the robot/emulator */
 static void initialise_plotter(void)
 {
     char buf[16];
+
+    /* A blank line is enough to wake up the robot code */
     sprintf(buf, "\n");
     PrintBuffer(buf);
     Sleep(100);
     WaitForDollar();
 }
 
+/* Put the robot into “ready to draw” mode:
+ * origin, feed rate, motor on, pen up.
+ */
 static void prepare_motion(void)
 {
     char cmd[64];
@@ -118,6 +122,7 @@ static void prepare_motion(void)
     issue_line(cmd);
 }
 
+/* Finish the drawing: make sure pen is up and go back to origin */
 static void finalise_motion(void)
 {
     char cmd[64];
@@ -128,4 +133,3 @@ static void finalise_motion(void)
     sprintf(cmd, "G0 X0 Y0\n");
     issue_line(cmd);
 }
-
