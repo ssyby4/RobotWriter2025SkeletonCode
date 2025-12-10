@@ -3,7 +3,7 @@
 #include "serial.h"
 #include "glyph_store.h"
 #include "glyph_painter.h"
-#include "text_engine.h"
+#include "Text_engine.h"
 
 /* Local helper prototypes */
 static void issue_line(const char *line);
@@ -13,9 +13,11 @@ static void finalise_motion(void);
 
 int main(void)
 {
-    char inputFile[256] = "text.txt";     /* text file to render */
+    char inputFile[256] = "test.txt";
     int height_mm = 0;
     int rc;
+
+    printf("About to wake up the robot\n\n");
 
     /* Open serial or emulator channel */
     if (CanRS232PortBeOpened() == -1)
@@ -24,9 +26,8 @@ int main(void)
         return 0;
     }
 
-    /* Wake up the plotter/emulator */
     initialise_plotter();
-    printf("[INFO] Plotter ready.\n");
+    printf("\nThe robot is now ready to draw\n");
 
     /* Move to origin, set speed, ensure pen-up */
     prepare_motion();
@@ -41,8 +42,10 @@ int main(void)
         return 0;
     }
 
-    /* Ask user for the character height */
-    printf("Enter character height (4–10 mm): ");
+    /* ===== 关键：询问高度 ===== */
+    printf("\nEnter character height (4–10 mm): ");
+    fflush(stdout);              /* 确保提示立即显示 */
+
     if (scanf("%d", &height_mm) != 1)
     {
         printf("[ERROR] Invalid input.\n");
@@ -59,7 +62,7 @@ int main(void)
         return 0;
     }
 
-    /* Render the text from the file */
+    /* ===== 调用文本渲染 ===== */
     rc = render_text_file(inputFile, (float)height_mm);
     if (rc != 0)
     {
@@ -69,7 +72,7 @@ int main(void)
         return 0;
     }
 
-    printf("[INFO] Rendering complete.\n");
+    printf("\n[INFO] Rendering complete.\n");
 
     /* Pen-up and return to home */
     finalise_motion();
@@ -81,9 +84,9 @@ int main(void)
     return 0;
 }
 
-/* ------------------------------------------------------------------------- */
+
 /* Helper functions */
-/* ------------------------------------------------------------------------- */
+
 
 static void issue_line(const char *line)
 {
@@ -125,3 +128,4 @@ static void finalise_motion(void)
     sprintf(cmd, "G0 X0 Y0\n");
     issue_line(cmd);
 }
+

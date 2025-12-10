@@ -130,43 +130,44 @@ int WaitForReply (void)
 
 #else
 
+/* =========================
+ * PC / Emulator mode
+ * ========================= */
 
-// Open port with checking
-int CanRS232PortBeOpened ( void )
+/* Open port with checking (PC mode: always OK) */
+int CanRS232PortBeOpened(void)
 {
-    return (0);      // Success
+    return 0;      /* Success */
 }
 
-// Function to close the COM port
-void CloseRS232Port (void)
+/* Function to close the COM port (PC mode: nothing to do) */
+void CloseRS232Port(void)
 {
     return;
 }
 
-// JIB: you MUST specify variable types in function definitions
-int PrintBuffer (char *buffer)
+/* Print the buffer to the console instead of sending to serial */
+int PrintBuffer(char *buffer)
 {
-    printf("%s \n",buffer);
-    return (0);
+    printf("%s\n", buffer);
+    return 0;
 }
 
-
-int WaitForReply (void)
+/* In PC mode we do not wait for any reply from a controller */
+int WaitForReply(void)
 {
-    //char c;
-   // c = getchar();
-    return (0);
+    /* No blocking, just return immediately */
+    return 0;
 }
 
-int WaitForDollar (void)
+/* In PC mode we also do not wait for '$' */
+int WaitForDollar(void)
 {
-   // char c;
-   // c = getchar();
-    return (0);
+    /* No blocking, just return immediately */
+    return 0;
 }
 
-
-#endif // SM
+#endif  /* Serial_Mode */
 
 
 
