@@ -82,8 +82,19 @@ int main(void)
     CloseRS232Port();
     printf("[INFO] COM port closed.\n");
 
+    /* Prevent console window from closing immediately */
+    printf("\nDone. Press Enter to exit...\n");
+    fflush(stdout);
+
+    /* First getchar() consumes leftover newline from scanf,
+       second getchar() waits for your Enter key */
+    getchar();
+    getchar();
+
     return 0;
 }
+
+
 
 /* Send one line of G-code and wait for the reply */
 static void issue_line(const char *line)
