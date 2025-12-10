@@ -5,8 +5,7 @@
             "name": "RobotWriter Debug",
             "type": "cppdbg",
             "request": "launch",
-            "program":  "${workspaceFolder}/outDebug.exe"
-,
+            "program": "${workspaceFolder}/outDebug.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -14,7 +13,8 @@
             "externalConsole": true,
             "MIMode": "gdb",
             "miDebuggerPath": "D:/software/mingw64/bin/gdb.exe",
-          
+            "preLaunchTask": "Build RobotWriter"
         }
     ]
 }
+

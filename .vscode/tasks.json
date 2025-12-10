@@ -13,7 +13,7 @@
                 "serial.c",
                 "rs232.c",
                 "-o",
-                "build/Debug/outDebug.exe",
+                "outDebug.exe",
                 "-Wall"
             ],
             "group": {
