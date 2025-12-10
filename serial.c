@@ -102,7 +102,7 @@ int WaitForReply (void)
             printf ("RCVD: N = %d ", n);
             buf[n] = 0;   /* always put a "null" at the end of a string! */
 
-            for(i=0; i < n; i++)
+           for(i=0; i < n; i++)
             {
                 if(buf[i] < 32)  /* replace unreadable control-codes by dots */
                 {
@@ -153,15 +153,15 @@ int PrintBuffer (char *buffer)
 
 int WaitForReply (void)
 {
-    char c;
-    c = getchar();
+    //char c;
+   // c = getchar();
     return (0);
 }
 
 int WaitForDollar (void)
 {
-    char c;
-    c = getchar();
+   // char c;
+   // c = getchar();
     return (0);
 }
 
